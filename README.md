@@ -1,67 +1,64 @@
-# Ship Re-Identification in the Wild: ShipReID-2400 and D2InterNet++
+<div align="center">
 
-This repository accompanies the manuscript **“Ship Re-Identification in the Wild: A Large-Scale Dataset and a Strong Baseline.”** It contains the ShipReID-2400 data interface and an implementation snapshot of the Feature-Decoupled Dual-Branch Interaction Network (**D2InterNet++**).
+# ShipReID-2400 & D2InterNet++
+
+### Ship Re-Identification in the Wild: A Large-Scale Dataset and a Strong Baseline
+
+[![Python](https://img.shields.io/badge/Python-3.8-3776AB?logo=python&logoColor=white)](#installation)
+[![PyTorch](https://img.shields.io/badge/PyTorch-1.9.1-EE4C2C?logo=pytorch&logoColor=white)](#installation)
+[![Dataset](https://img.shields.io/badge/Dataset-Baidu_Netdisk-2932E1)](https://pan.baidu.com/s/1E7yLizsIv0E8SVgn45IWpQ?pwd=kfbn)
+
+[Overview](#overview) · [Dataset](#dataset) · [Installation](#installation) · [Training](#training) · [Evaluation](#evaluation) · [Results](#results) · [Citation](#citation)
+
+</div>
+
+Research code and dataset interface accompanying the manuscript **“Ship Re-Identification in the Wild: A Large-Scale Dataset and a Strong Baseline.”** This repository contains the implementation snapshot of the Feature-Decoupled Dual-Branch Interaction Network (**D2InterNet++**) for ship re-identification.
+
+> **Release status:** this is a research snapshot. Generated per-image captions are not yet connected to the data loader, the validation/test loaders share a gallery, and standalone evaluation needs an update. See [reproducibility notes](docs/reproducibility.md) for details. The reported paper results have not been independently reproduced from this checkout.
 
 ## Overview
 
-Ship re-identification associates the same vessel across disjoint cameras and time periods. Compared with pedestrian and vehicle ReID, real-world ship ReID is strongly affected by large scale changes, partial observations, cargo and water-level variations, and severe spatial misalignment.
+Ship re-identification matches the same vessel across cameras and time periods. Changes in scale, viewpoint, cargo, water level and partial visibility make this task challenging.
 
-ShipReID-2400 was collected from a real-world waterway monitoring system over 53 months. It contains **17,241 unique images of 2,400 ship identities** captured by eight cameras. Query folders contain evaluation copies and are not counted as additional unique images.
+D2InterNet++ combines a **global visual branch** and a **local part-aware branch**, with a Part-Aware Feature Perception Module (PFPM), Feature Interaction Module (FIM), and Collaborative Interaction Learning Module (CILM). The implementation also includes a frozen CLIP text encoder for auxiliary image-text supervision during training.
 
-D2InterNet++ contains:
+<p align="center">
+  <img src="fig/baseline.jpg" alt="Visual architecture: global and local branches, PFPM, FIM and CILM" width="100%">
+</p>
 
-- a global visual branch for holistic ship semantics;
-- a local branch with dual-axis part tokens for horizontal and vertical ship regions;
-- a Part-Aware Feature Perception Module (PFPM);
-- a Feature Interaction Module (FIM);
-- a Collaborative Interaction Learning Module (CILM);
-- a part-feature alignment objective for partially overlapping views;
-- an auxiliary frozen CLIP text encoder and bidirectional image-text contrastive loss during training.
-
-The text branch is intended for training only and is discarded during visual retrieval inference.
-
-## Repository Status
-
-This directory is a research snapshot, not yet a complete paper-reproduction package.
-
-| Capability | Current status |
-|---|---|
-| Global/local visual branches, PFPM, FIM and CILM | Implemented |
-| Frozen CLIP text encoder and image-text contrastive loss | Implemented |
-| JSONL annotation loading and prompt serialization utility | Implemented |
-| Generated per-image captions used by the data loader | **Not enabled in the current snapshot**; the loader currently returns one fixed caption |
-| Separate validation/test gallery construction | **Not implemented**; both loaders currently use the shared `bounding_box_test` gallery |
-| Standalone `test.py` with the text-aware batch format | Requires an inference-loop update |
-| CUB-200-2011, Stanford Cars, NABirds and VesselReID reproduction configs | Not included |
-
-Consequently, the manuscript's generated-caption and cross-domain tables cannot yet be reproduced directly from this checkout.
-
-## Installation
-
-The original experiments used Python 3.8, PyTorch 1.9.1 and CUDA 11.1.
-
-```bash
-conda create -n shipreid python=3.8
-conda activate shipreid
-pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 \
-  -f https://download.pytorch.org/whl/torch_stable.html
-pip install -r requirements.txt
-```
-
-The code currently assumes an NVIDIA CUDA device. The CLIP ViT-B/16 weights are downloaded automatically on first use and verified by SHA-256.
+*Visual branch architecture supplied with the project. The auxiliary text branch is not shown in this figure.*
 
 ## Dataset
 
-The dataset download currently referenced by the project is available from [Google Drive](https://drive.google.com/file/d/1OTGK09zo5RKuoGSL-s58e7UzJzIWy7nP/view?usp=sharing).
+**ShipReID-2400** is a ship re-identification dataset collected from a real-world waterway monitoring system.
 
-The current data factory key is `ShipReID2400`, and the loader also uses this value as the directory name. Place or link the extracted dataset at:
+| Property | Reported value |
+| :--- | :--- |
+| Ship identities | 2,400 |
+| Images | 17,241 |
+| Cameras | 8 |
+| Collection period | 53 months |
+
+Image totals and query/gallery overlap require clarification; see [dataset split accounting](docs/reproducibility.md#dataset-split-accounting).
+
+<p align="center">
+  <img src="fig/eg.jpg" alt="Ship image examples across viewpoints and observation conditions" width="100%">
+</p>
+
+### Download
+
+| Dataset | Download | Extraction code / 提取码 |
+| :--- | :--- | :---: |
+| ShipReID-2400 | [Baidu Netdisk / 百度网盘](https://pan.baidu.com/s/1E7yLizsIv0E8SVgn45IWpQ?pwd=kfbn) | **`kfbn`** |
+
+The dataset is distributed separately from the source code. Download and extract it under your dataset root. The loader expects the directory name **`ShipReID2400`**:
 
 ```text
 <DATASETS.ROOT_DIR>/ShipReID2400/
-├── bounding_box_train/       # 12,988 unique training images
-├── bounding_box_test/        # 4,253 unique evaluation images
-├── val_query/                # 691 query copies
-├── test_query/               # 706 query copies
+├── bounding_box_train/
+├── bounding_box_test/
+├── val_query/
+├── test_query/
 ├── bounding_box_train.jsonl
 ├── val_query.jsonl
 ├── val_gallery.jsonl
@@ -69,77 +66,24 @@ The current data factory key is `ShipReID2400`, and the loader also uses this va
 └── test_gallery.jsonl
 ```
 
-The 17,241 unique images are counted as:
+This tree describes the current loader's expected inputs. See [dataset and annotation format](docs/data-format.md) for filenames, JSONL structure and path matching requirements.
 
-```text
-12,988 training images + 2,149 validation images + 2,104 test images = 17,241
+## Installation
+
+The environment recorded by the project is **Python 3.8, PyTorch 1.9.1 and CUDA 11.1**. An NVIDIA CUDA device is required by the current code.
+
+```bash
+git clone https://github.com/923076046/ShipReID-2400-6257.git
+cd ShipReID-2400-6257
+
+conda create -n shipreid python=3.8
+conda activate shipreid
+pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 \
+  -f https://download.pytorch.org/whl/torch_stable.html
+pip install -r requirements.txt
 ```
 
-The manuscript also reports 691 validation-query and 706 test-query entries. If those entries are added again to the figures above, the directory-entry count becomes `18,638` (`17,241 + 691 + 706`), but the manuscript never states that 18,638 is the number of unique images. This repository interprets the query directories as evaluation copies/subsets that do not increase the unique-image total.
-
-That interpretation exposes an ambiguity in the manuscript: Section 3.3 says that the query images are selected first and that "all remaining images" form the gallery, which would make query and gallery disjoint and would instead imply 18,638 unique images. The paper should explicitly state whether query images are duplicated in/included within the reported gallery counts, and revise either the wording or the split counts accordingly.
-
-### Image naming convention
-
-The ship loader expects JPEG filenames containing an identity and camera identifier:
-
-```text
-<ship_id>_c<camera_id>_...jpg
-```
-
-Camera IDs must currently be between 1 and 8.
-
-### Text annotation format
-
-Each JSONL line should contain an `image_path` and an `annotation` object. The current mapping performs an exact string match between `image_path` and the image path produced by the dataset loader, so absolute/relative path conventions must be consistent.
-
-```json
-{
-  "image_path": "/absolute/path/to/ShipReID2400/bounding_box_train/0000_c002_01_T_20220105_11_04_07_484171.jpg",
-  "annotation": {
-    "hull_color": "rusty blue",
-    "fenders": {
-      "density": "dense",
-      "arrangement": "single row"
-    },
-    "cabin_details": {
-      "structure_description": "a single-level blue cabin with a white railing",
-      "windows_doors": "multiple rectangular windows"
-    },
-    "deck_info": {
-      "deck_surface": "open cargo deck",
-      "discriminative_objects": [
-        {
-          "object": "air-conditioning unit",
-          "description": "a white outdoor unit mounted on the cabin side",
-          "location": "cabin side"
-        }
-      ]
-    }
-  }
-}
-```
-
-`utils/ship_text.py` can convert this structure into a global caption, visual-cue description and attribute tags. In the current snapshot, `datasets/bases.py` does not yet call this serializer and instead supplies a fixed caption. This must be corrected before reproducing the generated-caption experiment.
-
-## Code Structure
-
-```text
-├── config/                    # Default configuration definitions
-├── configs/ship/              # ShipReID experiment configuration
-├── datasets/                  # Dataset adapters, transforms and samplers
-├── exp/                       # Legacy experiment shell scripts
-├── fig/                       # Repository figures
-├── loss/                      # Classification, metric and alignment losses
-├── model/                     # D2InterNet++ and CLIP implementation
-├── processor/                 # Training and inference loops
-├── solver/                    # Optimizers and learning-rate schedulers
-├── utils/ship_text.py         # JSONL loading and prompt serialization
-├── train.py                   # Training entry point
-└── test.py                    # Evaluation entry point
-```
-
-`model/make_model copy.py` is a legacy development copy and is not imported by the training entry point.
+The CLIP ViT-B/16 weights are downloaded automatically on first use. Task-specific trained checkpoints are not included in this repository.
 
 ## Training
 
@@ -168,11 +112,11 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
   SOLVER.TOKEN_MARGIN 0.3
 ```
 
-The current implementation uses `256 x 256` inputs because the dual-axis part coordinates are hard-coded for a `16 x 16` patch grid. The manuscript reports `256 x 128` inputs and 60 training epochs; those settings are not currently consistent with this code snapshot and should not be claimed as directly reproducible until the implementation or manuscript is corrected.
-
-During training, validation and test metrics are logged every `SOLVER.EVAL_PERIOD` epochs and checkpoints are saved every `SOLVER.CHECKPOINT_PERIOD` epochs.
+This command follows the current code snapshot. It is not a verified reproduction recipe for the manuscript. See [configuration differences](docs/reproducibility.md#configuration-differences) before comparing results. Validation/test metrics and checkpoints are written according to `SOLVER.EVAL_PERIOD` and `SOLVER.CHECKPOINT_PERIOD`.
 
 ## Evaluation
+
+**Current limitation:** the standalone inference loop needs a batch-format update before the following command can be used. See [reproducibility notes](docs/reproducibility.md).
 
 The intended evaluation command is:
 
@@ -191,7 +135,7 @@ Before using this command, update `processor.do_inference` to unpack the text-aw
 
 Evaluation reports mean Average Precision (mAP) and CMC Rank-1/5/10 after removing gallery samples with the same identity and camera as each query.
 
-## Results Reported in the Manuscript
+## Results
 
 These values are copied from the manuscript and have **not** been independently reproduced from this repository snapshot.
 
@@ -200,21 +144,38 @@ These values are copied from the manuscript and have **not** been independently 
 | D2InterNet++ visual model | 44.0 | 51.0 |
 | D2InterNet++ with generated-caption supervision | 44.9 | 52.4 |
 
-## Reproducibility Checklist
+## Repository structure
 
-Before treating the repository as the artifact for the manuscript, the following items should be completed:
+```text
+├── config/                    # Default configuration definitions
+├── configs/ship/              # ShipReID experiment configuration
+├── datasets/                  # Dataset adapters, transforms and samplers
+├── exp/                       # Legacy experiment shell scripts
+├── fig/                       # Repository figures
+├── loss/                      # Classification, metric and alignment losses
+├── model/                     # D2InterNet++ and CLIP implementation
+├── processor/                 # Training and inference loops
+├── solver/                    # Optimizers and learning-rate schedulers
+├── utils/ship_text.py         # JSONL loading and prompt serialization
+├── train.py                   # Training entry point
+└── test.py                    # Evaluation entry point
+```
 
-- connect `annotation_to_texts()` to `ImageDataset.__getitem__`;
-- validate JSONL path coverage and fail loudly on missing annotations;
-- construct separate validation and test galleries matching the paper protocol;
-- align the input size, epoch count and loss weights with the manuscript;
-- align PFAM's mathematical description with its implemented assignment algorithm;
-- align the inference embedding with the feature concatenation defined in the manuscript;
-- repair and test the standalone evaluation entry point;
-- publish the exact checkpoints, logs, random seeds and baseline configurations used for every table;
-- add the fine-grained retrieval and VesselReID configurations claimed in the manuscript;
-- add a software license, dataset terms of use and a citation entry.
+`model/make_model copy.py` is a legacy development copy and is not imported by the training entry point.
 
-## License and Citation
+Additional documentation:
 
-No software license or dataset terms of use are included in this snapshot. Add them before public release. A final BibTeX entry should be added after the manuscript metadata is finalized.
+- [Dataset and text annotation format](docs/data-format.md)
+- [Implementation status and reproducibility notes](docs/reproducibility.md)
+
+## Citation
+
+If you use ShipReID-2400 or this implementation in your research, please cite the associated manuscript. A complete BibTeX entry and paper link will be added when the final author list and publication metadata are available.
+
+## Related projects
+
+Relevant open-source implementations include [CLIP-ReID](https://github.com/Syliz517/CLIP-ReID), [TransReID](https://github.com/damo-cv/TransReID), and [CLIP](https://github.com/openai/CLIP).
+
+## License
+
+A project-wide software license and dataset terms have not yet been specified. This repository does not grant an additional license for third-party components; retain and follow any notices supplied with those components.
